@@ -1,0 +1,85 @@
+<resources>
+    <string name="app_name">Inventory App</string>
+
+    <!-- appbar labels -->
+    <string name="catalog_appbar">Product Catalog</string>
+    <string name="detail_appbar">Product Inventory</string>
+
+    <string name="empty_view_text_1">Sorry, there are no products to display.</string>
+    <string name="empty_view_text_2">Press the \'&#43;\' icon to add new products.</string>
+
+    <!-- options menu title strings -->
+    <string name="action_save">Save</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+
+    <!-- catalog activity -->
+    <string name="error_deleting_all_products">Error: no products were deleted</string>
+    <string name="delete_all_products_successful">All products deleted successfully</string>
+
+    <string name="deleteConf_dialog_msg">Are you sure you want to delete all products?</string>
+    <string name="delete_dialog_yes">Yes</string>
+    <string name="delete_dialog_no">No</string>
+
+    <!-- listview -->
+    <string name="name">Product Name</string>
+    <string name="current_quantity">Qty:</string>
+    <string name="price">Price:</string>
+
+    <string name="product_sale">Sell This Product</string>
+
+    <!-- edit product activity -->
+    <string name="edit_appbar_add_product">Add a New Product</string>
+    <string name="edit_appbar_edit_product">Edit Product</string>
+    <string name="name_prompt">"What is the product name?"</string>
+    <string name="qty_prompt">What is the current quantity of this product?</string>
+    <string name="price_prompt">What is the price of this product?"</string>
+    <string name="image_prompt">Please upload an image for this product.</string>
+    <string name="supplier_prompt">Please enter the supplier\'s e-mail address for this product.</string>
+
+    <string name="error_inserting_product">Error inserting product</string>
+    <string name="insert_product_successful">New product added successfully</string>
+
+    <string name="error_updating_product">Error updating product</string>
+    <string name="product_update_successful">Product updated successfully</string>
+
+    <string name="edit_error_deleting_product">Error deleting product</string>
+    <string name="edit_product_deletion_successful">Product deleted successfully</string>
+
+    <!-- product detail activity -->
+    <string name="product_name">Product Name</string>
+    <string name="quantity_heading">Quantity</string>
+
+    <string name="supplier_email_subject">Account 123456 Restock Request</string>
+    <string name="email_intent_chooser_title">Send E-mail to Supplier</string>
+    <string name="email_body_text_template">
+        Hello:
+        \nWe are requesting additional products to replenish our inventory.
+        \n
+        \nPlease note the following product names and desired quantities.
+        \n
+        \n
+        \nThank you,
+        \nGro-Right Nursery
+        \n---------------- begin order ------------
+    </string>
+
+    <string name="error_updating_qty">Error updating quantity for this product</string>
+    <string name="qty_update_successful">Quantity update for this product was successful</string>
+
+    <string name="detail_error_deleting_product">Error deleting product</string>
+    <string name="detail_product_deletion_successful">Product deletion was successful</string>
+
+    <string name="update_quantity">Update Quantity</string>
+    <string name="update_qty_shipment">Update Quantity with Shipment Data</string>
+    <string name="order_more">Order More</string>
+
+    <string name="product_deleteConf_dialog_msg">Are you sure you want to delete this product?</string>
+
+    <string name="supp_email_dialog_msg">Would you like to add this product to the supplier e-mail?</string>
+    <string name="supp_email_dialog_yes">Yes</string>
+    <string name="supp_email_dialog_no">No</string>
+
+    <string name="invalid_quantity_reset_zero">Invalid value, quantity will be re-set to zero.</string>
+
+</resources>
