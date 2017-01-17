@@ -1,17 +1,26 @@
 package com.example.melanieh.inventoryapp;
 
+import android.Manifest;
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.app.NavUtils;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AlertDialog;
@@ -22,6 +31,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -30,12 +40,17 @@ import android.widget.Toast;
 import com.example.melanieh.inventoryapp.data.ProductContract;
 import com.example.melanieh.inventoryapp.data.ProductDBHelper;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+
 /**
  * Created by melanieh on 10/30/16.
  */
 
-public class EditProductActivity extends AppCompatActivity {
-
+public class EditProductActivity extends AppCompatActivity implements
+        LoaderManager.LoaderCallbacks<Cursor>, View.OnClickListener {
 
     /**
      * log tag
@@ -45,9 +60,15 @@ public class EditProductActivity extends AppCompatActivity {
      * intent chooser strings
      */
     private static final int SELECT_PICTURE = 1;
+    private static final int REQUEST_PICK_IMAGE = 1;
+    private static final String[] PERMISSIONS = {Manifest.permission.MANAGE_DOCUMENTS,
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
     SQLiteDatabase db;
     ProductDBHelper dbHelper;
     Cursor cursor;
+
     /**
      * projection for cursorloader calls
      */
@@ -58,7 +79,7 @@ public class EditProductActivity extends AppCompatActivity {
             ProductContract.ProductEntry.COLUMN_IMAGE_URI,
             ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL};
     /**
-     * UI views for adding product data or populating from a cursor
+     * UI views for displaying product data
      */
     EditText nameEditText;
     EditText qtyEditText;
@@ -67,23 +88,18 @@ public class EditProductActivity extends AppCompatActivity {
     Button imageUploadBtn;
     ImageView uploadedImage;
     Uri selectedImageUri;
-    /****
-     * content values for product attributes
-     */
+    private String selectedImageUriString;
+    Bitmap bitmap;
+    String decodedURI;
+
     String name;
     Integer qty;
     Double price;
     String suppEmail;
     ContentValues values;
-    ContentValues updatedValues;
     Uri currentProdUri;
-    /****
-     * CRUD method variables
-     */
-    String productTable = ProductContract.ProductEntry.PRODUCT_TABLE_NAME;
-    String shipmentTable = ProductContract.ShipmentEntry.SHIPMENT_TABLE_NAME;
-    private String productImagePath;
-    private boolean productHasChanged = false;
+    Uri productImageUri;
+    Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,9 +107,6 @@ public class EditProductActivity extends AppCompatActivity {
         Log.v(LOG_TAG, "onCreate called...");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.edit_product);
-
-
-        dbHelper = new ProductDBHelper(this);
 
         // interactive UI views
 
@@ -103,7 +116,11 @@ public class EditProductActivity extends AppCompatActivity {
         imageUploadBtn = (Button) findViewById(R.id.image_prompt);
         supplierEmailEditText = (EditText) findViewById(R.id.edit_supplier_email);
         uploadedImage = (ImageView) findViewById(R.id.uploaded_image);
-
+        imageUploadBtn.setOnClickListener(this);
+        dismissKeyboard(nameEditText);
+        dismissKeyboard(qtyEditText);
+        dismissKeyboard(priceEditText);
+        dismissKeyboard(supplierEmailEditText);
 
         /** inbound intent data **/
 
@@ -115,29 +132,41 @@ public class EditProductActivity extends AppCompatActivity {
             setTitle(getString(R.string.edit_appbar_add_product));
         } else {
             setTitle(getString(R.string.edit_appbar_edit_product));
-            updateProduct();
-
+            // if product image has been chosen, display it
+            getSupportLoaderManager().initLoader(2, null, this);
         }
-
-//      /** click listener for image upload button */
-        imageUploadBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent();
-                intent.setType("image/*");
-                intent.setAction(Intent.ACTION_GET_CONTENT);
-                startActivityForResult(Intent.createChooser(intent, "Select Picture"), SELECT_PICTURE);
-            }
-        });
-
-
+//        if (bitmap != null) {
+//            try {
+//                String decodedURI = java.net.URLDecoder.decode(selectedImageUriString, "UTF-8");
+//                bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), currentProdUri);
+//                uploadedImage.setImageBitmap(bitmap);
+//                uploadedImage.setImageURI(Uri.parse(decodedURI));
+//            } catch (UnsupportedEncodingException e) {
+//                Log.e(LOG_TAG, "", e);
+//            } catch (IOException e) {
+//                Log.e(LOG_TAG, "", e);
+//            }
+//        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-
     }
+
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        Log.v(LOG_TAG, "grantResults= " + grantResults);
+//        if (requestCode == REQUEST_IMAGE_OPEN) {
+//            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                Intent openImage = new Intent(Intent.ACTION_GET_CONTENT);
+//                startActivityForResult(openImage, REQUEST_IMAGE_OPEN);
+////            }
+//            } else {
+//                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+//            }
+//        }
+//    }
 
 
     /**
@@ -148,24 +177,21 @@ public class EditProductActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK) {
             {
                 if (requestCode == SELECT_PICTURE) {
-                    Uri selectedImageUri = data.getData();
-                    productImagePath = selectedImageUri.getPath();
-                    System.out.println("Image Path : " + productImagePath);
-                    uploadedImage.setVisibility(View.VISIBLE);
-                    uploadedImage.setImageURI(selectedImageUri);
-                    data.putExtra(Intent.EXTRA_STREAM, selectedImageUri);
-
+                    selectedImageUri = data.getData();
+                    Bitmap bitmap = getBitmapFromUri(selectedImageUri);
+                    uploadedImage.setImageBitmap(bitmap);
+////                    uploadedImage.setImageURI(selectedImageUri);
+//                    selectedImageUriString = selectedImageUri.toString();
+////                    data.putExtra(Intent.EXTRA_STREAM, selectedImageUri);
                 }
             }
         }
-
     }
 
     @Override
     public void finish() {
         cursor.close();
     }
-
 
     /**
      * options menu
@@ -179,15 +205,13 @@ public class EditProductActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
         switch (item.getItemId()) {
             case R.id.action_save:
-                if (currentProdUri == null) {
-                    insertProduct();
-
-                }
+                saveProduct();
+                break;
             case R.id.action_delete:
                 showDeleteConfirmationDialog();
+                break;
             case android.R.id.home:
                 NavUtils.navigateUpFromSameTask(this);
         }
@@ -202,125 +226,77 @@ public class EditProductActivity extends AppCompatActivity {
     /**
      * helper methods for inserting a new product or updating an existing product
      */
-    private Uri insertProduct() {
-        price = 0.0;
-        qty = 0;
-        ProductDBHelper dbHelper = new ProductDBHelper(this);
-
+    private void saveProduct() {
+        dbHelper = new ProductDBHelper(this);
         db = dbHelper.getWritableDatabase();
 
         name = nameEditText.getText().toString().trim();
-        qty = Integer.parseInt(qtyEditText.getText().toString().trim());
-        price = Double.valueOf(priceEditText.getText().toString().trim());
+        String qtyString = qtyEditText.getText().toString().trim();
+//        qty = Integer.parseInt(qtyString);
+        String priceString = priceEditText.getText().toString().trim();
         suppEmail = supplierEmailEditText.getText().toString().trim();
-        imageUploadBtn.setText("Upload New Image");
 
-
-        // check if any of these values from the input fields are blank
-        if (TextUtils.isEmpty(name) && (qty == null)
-                && (price == null || TextUtils.isEmpty(suppEmail))
-                ) {
-            finish();
+        /** user input validation */
+        // name
+        if (TextUtils.isEmpty(name)) {
+            dismissKeyboard(nameEditText);
+            Toast.makeText(this, getString(R.string.user_input_validation_name), Toast.LENGTH_SHORT);
+            return;
+        }
+        // quantity (string and numerical values)
+        if (TextUtils.isEmpty(qtyString)) {
+            dismissKeyboard(qtyEditText);
+            Toast.makeText(this, getString(R.string.user_input_validation_name), Toast.LENGTH_SHORT);
+            return;
         }
 
-        ContentValues values = new ContentValues();
+        try {
+            qty = Integer.parseInt(qtyString);
+        } catch (NumberFormatException e) {
+            dismissKeyboard(qtyEditText);
+            Toast.makeText(this, getString(R.string.user_input_validation_qty), Toast.LENGTH_SHORT);
+            return;
+        }
+        // price (string and numerical values)
+        if (TextUtils.isEmpty(priceString)) {
+            Toast.makeText(this, getString(R.string.user_input_validation_price), Toast.LENGTH_SHORT);
+            return;
+        }
+
+        try {
+            price = Double.valueOf(priceString);
+            Toast.makeText(this, getString(R.string.user_input_validation_price), Toast.LENGTH_SHORT);
+        } catch (NumberFormatException e) {
+            return;
+        }
+
+        // supplier e-mail
+        if (TextUtils.isEmpty(suppEmail)) {
+            Toast.makeText(this, getString(R.string.user_input_validation_supplier_email), Toast.LENGTH_SHORT);
+            return;
+        }
+        // no user validation for image as image is not required but user can save anyway
+
+        values = new ContentValues();
         values.put(ProductContract.ProductEntry.COLUMN_NAME, name);
         values.put(ProductContract.ProductEntry.COLUMN_QTY, qty);
         values.put(ProductContract.ProductEntry.COLUMN_PRICE, price);
-        values.put(ProductContract.ProductEntry.COLUMN_IMAGE_URI, productImagePath);
+        values.put(ProductContract.ProductEntry.COLUMN_IMAGE_URI, selectedImageUri.toString());
         values.put(ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL, suppEmail);
 
-        long newRowId = db.insert(ProductContract.ProductEntry.PRODUCT_TABLE_NAME, null, values);
-
-        if (newRowId == -1) {
-            Toast.makeText(EditProductActivity.this, getString(R.string.error_inserting_product),
-                    Toast.LENGTH_SHORT).show();
+        if (currentProdUri == null) {
+            getContentResolver().insert(ProductContract.ProductEntry.PRODUCTS_CONTENT_URI, values);
         } else {
-            Toast.makeText(EditProductActivity.this, getString(R.string.insert_product_successful),
-                    Toast.LENGTH_SHORT).show();
+            getContentResolver().update(currentProdUri, values, null, null);
         }
 
-        // Return the new URI with the ID (of the newly inserted row) appended at the end
-        return ContentUris.withAppendedId(ProductContract.ProductEntry.PRODUCTS_CONTENT_URI, newRowId);
     }
-
-
-    private int updateProduct() {
-
-        db = dbHelper.getWritableDatabase();
-        int numRowsUpdated = 0;
-
-        /** first, populate fields if existing product */
-        Log.v(LOG_TAG, "populateEditFields called...");
-
-        String selection = ProductContract.ProductEntry.COLUMN_ID + "=?";
-        String[] selectionArgs = new String[]{String.valueOf(ContentUris.parseId(currentProdUri))};
-        Log.v(LOG_TAG, "selectionArgs=" + selectionArgs);
-        cursor = db.query(productTable, projection, selection, selectionArgs, null, null, null);
-
-        while (cursor.moveToNext()) {
-            int nameColIndex = cursor.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_NAME);
-            Log.v(LOG_TAG, "nameIndex= " + nameColIndex);
-            int qtyColIndex = cursor.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_QTY);
-            Log.v(LOG_TAG, "qtyColIndex= " + qtyColIndex);
-            int priceColIndex = cursor.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_PRICE);
-            Log.v(LOG_TAG, "priceIndex = " + priceColIndex);
-            int imageUriColIndex = cursor.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_IMAGE_URI);
-            Log.v(LOG_TAG, "imageUriIndex= " + imageUriColIndex);
-            int suppEmailColIndex = cursor.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL);
-            Log.v(LOG_TAG, "suppEmail index = " + suppEmailColIndex);
-
-            name = cursor.getString(nameColIndex);
-            qty = cursor.getInt(qtyColIndex);
-            String quantityString = String.valueOf(qty);
-            price = cursor.getDouble(priceColIndex);
-            String priceString = String.valueOf(price);
-            suppEmail = cursor.getString(suppEmailColIndex);
-
-            nameEditText.setText(name);
-            qtyEditText.setText(quantityString);
-            priceEditText.setText(priceString);
-            supplierEmailEditText.setText(suppEmail);
-            uploadedImage.setImageURI(selectedImageUri);
-
-
-            /** these are fed/populated by the new inputs from the user */
-
-            updatedValues = new ContentValues();
-
-            // check for no values updated case; exit method at this point
-            if (updatedValues.size() == 0) {
-                return numRowsUpdated;
-            } else {
-
-                updatedValues.put(ProductContract.ProductEntry.COLUMN_NAME, name);
-                updatedValues.put(ProductContract.ProductEntry.COLUMN_QTY, qty);
-                updatedValues.put(ProductContract.ProductEntry.COLUMN_PRICE, price);
-                updatedValues.put(ProductContract.ProductEntry.COLUMN_IMAGE_URI, productImagePath);
-                updatedValues.put(ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL, suppEmail);
-
-                numRowsUpdated = db.update(productTable, updatedValues, null, null);
-
-                if (numRowsUpdated == 0) {
-                    Toast.makeText(EditProductActivity.this, getString(R.string.error_updating_product),
-                            Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(EditProductActivity.this, getString(R.string.product_update_successful),
-                            Toast.LENGTH_SHORT).show();
-                }
-
-            }
-        }
-        return numRowsUpdated;
-    }
-
 
     private void showDeleteConfirmationDialog() {
 
         AlertDialog.Builder deleteConfADBuilder = new AlertDialog.Builder(this);
         deleteConfADBuilder.setMessage(getString(R.string.deleteConf_dialog_msg));
 
-        // clicklisteners for buttons
         // positive button=yes, delete all products
         DialogInterface.OnClickListener yesButtonListener = new DialogInterface.OnClickListener() {
             @Override
@@ -346,22 +322,126 @@ public class EditProductActivity extends AppCompatActivity {
 
     }
 
-
     private void deleteProduct() {
-
         db = dbHelper.getWritableDatabase();
-        int numRowsDeleted = db.delete(productTable, null, null);
+        getContentResolver().delete(currentProdUri, null, null);
+    }
 
-        if (numRowsDeleted == 0) {
-            Toast.makeText(EditProductActivity.this, getString(R.string.edit_error_deleting_product),
-                    Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(EditProductActivity.this, getString(R.string.edit_product_deletion_successful),
-                    Toast.LENGTH_SHORT).show();
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        return new CursorLoader(this, currentProdUri, projection, null, null, null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        if (data == null || data.getCount() < 1) {
+            return;
+        }
+
+        data.moveToFirst();
+        int idColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_ID);
+        int nameColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_NAME);
+        Log.v(LOG_TAG, "nameIndex= " + nameColIndex);
+        int qtyColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_QTY);
+        Log.v(LOG_TAG, "qtyColIndex= " + qtyColIndex);
+        int priceColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_PRICE);
+        Log.v(LOG_TAG, "priceIndex = " + priceColIndex);
+        int imageUriColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_IMAGE_URI);
+        Log.v(LOG_TAG, "imageUriIndex= " + imageUriColIndex);
+        int suppEmailColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL);
+        Log.v(LOG_TAG, "suppEmail index = " + suppEmailColIndex);
+
+        Integer id = data.getInt(idColIndex);
+        String name = data.getString(nameColIndex);
+        Integer qty = data.getInt(qtyColIndex);
+        String quantityString = String.valueOf(qty);
+        Double price = data.getDouble(priceColIndex);
+        String priceString = String.valueOf(price);
+        String selectedImageUriString = data.getString(imageUriColIndex);
+        String suppEmail = data.getString(suppEmailColIndex);
+
+        nameEditText.setText(name);
+        qtyEditText.setText(quantityString);
+        priceEditText.setText(priceString);
+        supplierEmailEditText.setText(suppEmail);
+        uploadedImage.setVisibility(View.VISIBLE);
+        Bitmap bitmap = getBitmapFromUri(selectedImageUri);
+        uploadedImage.setImageBitmap(bitmap);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        Log.v(LOG_TAG, "onLoaderReset:");
+        nameEditText.setText("");
+        qtyEditText.setText("");
+        priceEditText.setText("");
+        supplierEmailEditText.setText("");
+    }
+
+    @Override
+    public void onClick(View view) {
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), SELECT_PICTURE);
+    }
+
+    public Bitmap getBitmapFromUri(Uri uri) {
+
+        if (uri == null || uri.toString().isEmpty())
+            return null;
+
+        // Get the dimensions of the View
+        int targetW = uploadedImage.getWidth();
+        int targetH = uploadedImage.getHeight();
+
+        InputStream input = null;
+        try {
+            input = this.getContentResolver().openInputStream(uri);
+
+            // Get the dimensions of the bitmap
+            BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+            bmOptions.inJustDecodeBounds = true;
+            BitmapFactory.decodeStream(input, null, bmOptions);
+            input.close();
+
+            int photoW = bmOptions.outWidth;
+            int photoH = bmOptions.outHeight;
+
+            // Determine how much to scale down the image
+            int scaleFactor = Math.min(photoW / targetW, photoH / targetH);
+
+            // Decode the image file into a Bitmap sized to fill the View
+            bmOptions.inJustDecodeBounds = false;
+            bmOptions.inSampleSize = scaleFactor;
+            bmOptions.inPurgeable = true;
+
+            input = this.getContentResolver().openInputStream(uri);
+            Bitmap bitmap = BitmapFactory.decodeStream(input, null, bmOptions);
+            input.close();
+            return bitmap;
+
+        } catch (FileNotFoundException fne) {
+            Log.e(LOG_TAG, "Failed to load image.", fne);
+            return null;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Failed to load image.", e);
+            return null;
+        } finally {
+            try {
+                input.close();
+            } catch (IOException ioe) {
+
+            }
         }
     }
 
+    private void dismissKeyboard(EditText view) {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
 }
+
 
 
 

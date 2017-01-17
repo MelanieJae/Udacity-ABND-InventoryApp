@@ -37,7 +37,7 @@ public class ProductDBHelper extends SQLiteOpenHelper {
 
     /** SQL command strings */
     private static final String SQL_CREATE_PRODUCTS_TABLE = "CREATE TABLE " +
-            ProductContract.ProductEntry.PRODUCT_TABLE_NAME + " (" +
+            ProductContract.ProductEntry.TABLE_NAME + " (" +
             ProductContract.ProductEntry.COLUMN_ID + INT_PRIMARY_KEY_AUTOINC + ", " +
             ProductContract.ProductEntry.COLUMN_NAME + TEXT_NOT_NULL + "," +
             ProductContract.ProductEntry.COLUMN_QTY + INTEGER_NOT_NULL_DEFAULT + ", " +
@@ -46,16 +46,16 @@ public class ProductDBHelper extends SQLiteOpenHelper {
             ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL + TEXT + ");";
 
     private static final String SQL_CREATE_SHIPMENTS_TABLE = "CREATE TABLE " +
-            ProductContract.ShipmentEntry.SHIPMENT_TABLE_NAME + " (" +
+            ProductContract.ShipmentEntry.TABLE_NAME + " (" +
             ProductContract.ProductEntry.COLUMN_ID + INT_PRIMARY_KEY_AUTOINC + ", " +
             ProductContract.ShipmentEntry.COLUMN_INCOMING_PROD + TEXT_NOT_NULL + ", " +
             ProductContract.ShipmentEntry.COLUMN_INCOMING_QTY + INTEGER_NOT_NULL_DEFAULT + ");";
 
     private static final String DELETE_PRODUCTS_TABLE = "DROP TABLE IF EXISTS "
-            + ProductContract.ProductEntry.PRODUCT_TABLE_NAME + ";";
+            + ProductContract.ProductEntry.TABLE_NAME + ";";
 
     private static final String DELETE_SHIPMENTS_TABLE = "DROP TABLE IF EXISTS "
-            + ProductContract.ShipmentEntry.SHIPMENT_TABLE_NAME + ";";
+            + ProductContract.ShipmentEntry.TABLE_NAME + ";";
 
     @Override
     public void onCreate(SQLiteDatabase db) {

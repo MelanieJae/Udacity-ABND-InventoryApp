@@ -1,38 +1,42 @@
 package com.example.melanieh.inventoryapp;
 
+import android.app.LoaderManager;
+import android.content.ContentUris;
+import android.content.CursorLoader;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.Loader;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.NavUtils;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 import com.example.melanieh.inventoryapp.data.*;
 
 import com.example.melanieh.inventoryapp.data.ProductContract;
 
-public class CatalogActivity extends AppCompatActivity {
+public class CatalogActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
 
     ListView productListView;
     ProductCursorAdapter adapter;
     SQLiteDatabase db;
     ProductDBHelper dbHelper;
-    String productTable = ProductContract.ProductEntry.PRODUCT_TABLE_NAME;
-    Cursor cursor;
-    int quantity;
-
+    View emptyView;
+    Uri currentProdUri;
     /** log tag */
     private static final String LOG_TAG = CatalogActivity.class.getSimpleName();
-
-
-    /** intent extra for passing decrease in quantity when clicking the sell button */
-    public String QTY_DELTA_EXTRA = "qtyDelta";
 
     /** projection for cursorloader and content provider calls */
     String[] projection = {ProductContract.ProductEntry.COLUMN_ID,
@@ -44,8 +48,6 @@ public class CatalogActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.catalog);
         dbHelper = new ProductDBHelper(this);
@@ -53,13 +55,14 @@ public class CatalogActivity extends AppCompatActivity {
         // interactive UI views
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         productListView = (ListView) findViewById(R.id.list_view);
-
-        // product list empty view
-        View emptyView = findViewById(R.id.emptyview);
+        Button sellBtn = (Button) findViewById(R.id.sell_btn);
+        emptyView = findViewById(R.id.emptyview);
         productListView.setEmptyView(emptyView);
 
-        // click listeners
+        adapter = new ProductCursorAdapter(this, null);
+        productListView.setAdapter(adapter);
 
+        // click listeners
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -68,32 +71,41 @@ public class CatalogActivity extends AppCompatActivity {
             }
         });
 
-        displayProducts();
+        productListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                Intent openDetail = new Intent(CatalogActivity.this, DetailActivity.class);
+                currentProdUri = ContentUris.withAppendedId
+                        (ProductContract.ProductEntry.PRODUCTS_CONTENT_URI, id);
+                Log.v(LOG_TAG, "productCursorAdapter: currentProdUri= " + currentProdUri);
+                openDetail.setData(currentProdUri);
+                startActivity(openDetail);
 
+            }
+        });
+        getLoaderManager().initLoader(1, null, this);
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_catalog, menu);
         return true;
-    }
-
+        }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_delete:
                 showDeleteConfirmationDialog();
+                }
                 return true;
+            }
 
-        }
-        return true;
-    }
 
-    /** alertdialog for delete all products menu option */
+    /**
+     * alertdialog for delete all products menu option
+     */
 
     private void showDeleteConfirmationDialog() {
-
         AlertDialog.Builder deleteConfADBuilder = new AlertDialog.Builder(this);
         deleteConfADBuilder.setMessage(getString(R.string.deleteConf_dialog_msg));
 
@@ -123,11 +135,12 @@ public class CatalogActivity extends AppCompatActivity {
 
         deleteConfADBuilder.create();
         deleteConfADBuilder.show();
-
     }
 
 
-    /** delete all products help method */
+    /**
+     * delete all products help method
+     */
 
     private void deleteAllProducts() {
 
@@ -139,7 +152,7 @@ public class CatalogActivity extends AppCompatActivity {
          *                     for the table data selected in the whereClause because nothing is selected
          *                     for the whereClause;
          */
-        int numRowsDeleted = db.delete(ProductContract.ProductEntry.PRODUCT_TABLE_NAME, null, null);
+        int numRowsDeleted = db.delete(ProductContract.ProductEntry.TABLE_NAME, null, null);
 
         if (numRowsDeleted == 0) {
             Toast.makeText(CatalogActivity.this,
@@ -152,44 +165,19 @@ public class CatalogActivity extends AppCompatActivity {
         }
     }
 
-
-    public void displayProducts() {
-
-        db = dbHelper.getReadableDatabase();
-
-        String[] projection = {ProductContract.ProductEntry.COLUMN_ID,
-                ProductContract.ProductEntry.COLUMN_NAME,
-                ProductContract.ProductEntry.COLUMN_QTY,
-                ProductContract.ProductEntry.COLUMN_PRICE,
-                ProductContract.ProductEntry.COLUMN_IMAGE_URI,
-                ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL};
-
-        Cursor cursor = db.query(productTable, projection, null,
-                null, null, null, null);
-
-        int idColIndex = cursor.getColumnIndex(ProductContract.ProductEntry.COLUMN_ID);
-        int nameColIndex = cursor.getColumnIndex(ProductContract.ProductEntry.COLUMN_NAME);
-        int qtyColIndex = cursor.getColumnIndex(ProductContract.ProductEntry.COLUMN_QTY);
-        int priceColIndex = cursor.getColumnIndex(ProductContract.ProductEntry.COLUMN_PRICE);
-        int imageUriColIndex = cursor.getColumnIndex(ProductContract.ProductEntry.COLUMN_IMAGE_URI);
-        int suppEmailColIndex = cursor.getColumnIndex(ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL);
-
-        while (cursor.moveToNext()) {
-
-            int id = cursor.getInt(idColIndex);
-            String name = cursor.getString(nameColIndex);
-            int quantity = cursor.getInt(qtyColIndex);
-            double price = cursor.getDouble(priceColIndex);
-            String imageUri = cursor.getString(imageUriColIndex);
-            String suppEmail = cursor.getString(suppEmailColIndex);
-        }
-
-        productListView = (ListView) findViewById(R.id.list_view);
-        adapter = new ProductCursorAdapter(this, cursor);
-        productListView.setAdapter(adapter);
-        adapter.notifyDataSetChanged();
-
-
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+        Uri contentUri = ProductContract.ProductEntry.PRODUCTS_CONTENT_URI;
+        return new CursorLoader(this, contentUri, projection, null, null, null);
     }
 
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
+        adapter.swapCursor(cursor);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+//        adapter.swapCursor(null);
+    }
 }

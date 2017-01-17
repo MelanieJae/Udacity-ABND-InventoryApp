@@ -2,12 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.melanieh.inventoryapp">
 
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.MANAGE_DOCUMENTS"/>
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/catalog_appbar"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".CatalogActivity"
@@ -22,24 +24,30 @@
             android:name=".DetailActivity"
             android:label="@string/detail_appbar"
             android:configChanges="keyboardHidden"
-            android:parentActivityName=".CatalogActivity">
+            android:parentActivityName=".CatalogActivity"
+            >
             <intent-filter>
                 <action android:name="android.intent.action.SENDTO" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="mailto:"/>
+                <data android:mimeType="*/*"/>
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <data android:mimeType="image/*" />
-                <category android:name="android.intent.category.DEFAULT" />
                 <!-- The OPENABLE category declares that the returned file is accessible
                      from a content provider that supports OpenableColumns
                      and ContentResolver.openFileDescriptor() -->
                 <category android:name="android.intent.category.OPENABLE" />
             </intent-filter>
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".CatalogActivity"/>
+            <intent-filter>
+                <action android:name="android.intent.action.OPEN_DOCUMENT" />
+                <data android:mimeType="image/*" />
+                <!-- The OPENABLE category declares that the returned file is accessible
+                     from a content provider that supports OpenableColumns
+                     and ContentResolver.openFileDescriptor() -->
+                <category android:name="android.intent.category.OPENABLE" />
+            </intent-filter>
         </activity>
 
         <activity
@@ -61,11 +69,26 @@
                      and ContentResolver.openFileDescriptor() -->
                 <category android:name="android.intent.category.OPENABLE" />
             </intent-filter>
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".CatalogActivity"/>
+
+            <intent-filter>
+                <action android:name="android.intent.action.OPEN_DOCUMENT" />
+                <data android:mimeType="image/*" />
+                <!-- The OPENABLE category declares that the returned file is accessible
+                     from a content provider that supports OpenableColumns
+                     and ContentResolver.openFileDescriptor() -->
+                <category android:name="android.intent.category.OPENABLE" />
+            </intent-filter>
         </activity>
 
+        <provider
+            android:name=".data.ProductProvider"
+            android:authorities="com.example.melanieh.inventoryapp"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
     </application>
 
 </manifest>

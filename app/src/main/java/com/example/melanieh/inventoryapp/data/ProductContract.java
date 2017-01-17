@@ -22,8 +22,8 @@ public class ProductContract {
 
     public static final Uri BASE_URI = Uri.parse("content://" + CONTENT_AUTHORITY);
 
-    private static final String PATH_PRODUCTS = "products";
-    private static final String PATH_SHIPMENTS = "shipments";
+    public static final String PATH_PRODUCTS = "products";
+    public static final String PATH_SHIPMENTS = "shipments";
 
     /**
      * Created by melanieh on 11/1/16.
@@ -31,7 +31,7 @@ public class ProductContract {
 
     public static class ProductEntry implements BaseColumns {
 
-        public static final String PRODUCT_TABLE_NAME = "products";
+        public static final String TABLE_NAME = "products";
 
         /** content URI */
         public static final Uri PRODUCTS_CONTENT_URI = Uri.withAppendedPath(BASE_URI, PATH_PRODUCTS);
@@ -59,7 +59,7 @@ public class ProductContract {
 
     public static class ShipmentEntry implements BaseColumns {
 
-        public static final String SHIPMENT_TABLE_NAME = "shipments";
+        public static final String TABLE_NAME = "shipments";
 
         /** content URI */
         public static final Uri SHIPMENTS_CONTENT_URI = Uri.withAppendedPath(BASE_URI, PATH_SHIPMENTS);
@@ -85,7 +85,7 @@ public class ProductContract {
     @Override
     public String toString() {
         return "ProductContract content URIs {" +
-                "BASE_URI+" + BASE_URI.toString() +
+                "BASE_URI" + BASE_URI.toString() +
                 "PRODUCTS_CONTENT_URI" + ProductEntry.PRODUCTS_CONTENT_URI.toString() +
                 "SHIPMENTS_CONTENT_URI" + ShipmentEntry.SHIPMENTS_CONTENT_URI.toString() +
                 "}";
