@@ -11,6 +11,8 @@ empty view image: 'droopy dog' courtesy of https://s-media-cache-ak0.pinimg.com/
 Nursery image: (c)lamio 
 Used with license, created by Adobe Creative Cloud user 'lamio'
 
+getBitmapFromUri method courtesy of Carlos Jimenez at: https://github.com/crlsndrsjmnz/MyShareImageExample
+
 Some ContentProvider code courtesy of 
 /*
  * Copyright (C) 2016 The Android Open Source Project

@@ -55,7 +55,6 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         // interactive UI views
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         productListView = (ListView) findViewById(R.id.list_view);
-        Button sellBtn = (Button) findViewById(R.id.sell_btn);
         emptyView = findViewById(R.id.emptyview);
         productListView.setEmptyView(emptyView);
 
@@ -137,10 +136,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         deleteConfADBuilder.show();
     }
 
-
-    /**
-     * delete all products help method
-     */
+    /*** delete all products */
 
     private void deleteAllProducts() {
 
@@ -178,6 +174,6 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
-//        adapter.swapCursor(null);
+        adapter.swapCursor(null);
     }
 }

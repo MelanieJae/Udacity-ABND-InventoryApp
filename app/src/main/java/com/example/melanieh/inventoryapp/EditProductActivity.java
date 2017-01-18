@@ -14,6 +14,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
@@ -31,6 +32,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -60,7 +62,7 @@ public class EditProductActivity extends AppCompatActivity implements
      * intent chooser strings
      */
     private static final int SELECT_PICTURE = 1;
-    private static final int REQUEST_PICK_IMAGE = 1;
+    private static final int REQUEST_IMAGE_OPEN = 2;
     private static final String[] PERMISSIONS = {Manifest.permission.MANAGE_DOCUMENTS,
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE};
@@ -69,9 +71,7 @@ public class EditProductActivity extends AppCompatActivity implements
     ProductDBHelper dbHelper;
     Cursor cursor;
 
-    /**
-     * projection for cursorloader calls
-     */
+    /*** projection for cursorloader calls*/
     String[] projection = {ProductContract.ProductEntry.COLUMN_ID,
             ProductContract.ProductEntry.COLUMN_NAME,
             ProductContract.ProductEntry.COLUMN_QTY,
@@ -88,9 +88,6 @@ public class EditProductActivity extends AppCompatActivity implements
     Button imageUploadBtn;
     ImageView uploadedImage;
     Uri selectedImageUri;
-    private String selectedImageUriString;
-    Bitmap bitmap;
-    String decodedURI;
 
     String name;
     Integer qty;
@@ -98,8 +95,6 @@ public class EditProductActivity extends AppCompatActivity implements
     String suppEmail;
     ContentValues values;
     Uri currentProdUri;
-    Uri productImageUri;
-    Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,46 +123,29 @@ public class EditProductActivity extends AppCompatActivity implements
         currentProdUri = getUri.getData();
         Log.v(LOG_TAG, "currentProdUri = " + currentProdUri);
 
+        ViewTreeObserver viewTreeObserver = uploadedImage.getViewTreeObserver();
+        viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                uploadedImage.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                uploadedImage.setImageBitmap(getBitmapFromUri(currentProdUri));
+            }
+        });
+
         if (currentProdUri == null) {
             setTitle(getString(R.string.edit_appbar_add_product));
         } else {
             setTitle(getString(R.string.edit_appbar_edit_product));
+            openImageSelector();
             // if product image has been chosen, display it
             getSupportLoaderManager().initLoader(2, null, this);
         }
-//        if (bitmap != null) {
-//            try {
-//                String decodedURI = java.net.URLDecoder.decode(selectedImageUriString, "UTF-8");
-//                bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), currentProdUri);
-//                uploadedImage.setImageBitmap(bitmap);
-//                uploadedImage.setImageURI(Uri.parse(decodedURI));
-//            } catch (UnsupportedEncodingException e) {
-//                Log.e(LOG_TAG, "", e);
-//            } catch (IOException e) {
-//                Log.e(LOG_TAG, "", e);
-//            }
-//        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
     }
-
-//    @Override
-//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-//        Log.v(LOG_TAG, "grantResults= " + grantResults);
-//        if (requestCode == REQUEST_IMAGE_OPEN) {
-//            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                Intent openImage = new Intent(Intent.ACTION_GET_CONTENT);
-//                startActivityForResult(openImage, REQUEST_IMAGE_OPEN);
-////            }
-//            } else {
-//                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-//            }
-//        }
-//    }
-
 
     /**
      * displays the product image selected in the edit form and assigns the uri
@@ -176,13 +154,10 @@ public class EditProductActivity extends AppCompatActivity implements
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             {
-                if (requestCode == SELECT_PICTURE) {
+                if (requestCode == SELECT_PICTURE || requestCode == REQUEST_IMAGE_OPEN) {
                     selectedImageUri = data.getData();
                     Bitmap bitmap = getBitmapFromUri(selectedImageUri);
                     uploadedImage.setImageBitmap(bitmap);
-////                    uploadedImage.setImageURI(selectedImageUri);
-//                    selectedImageUriString = selectedImageUri.toString();
-////                    data.putExtra(Intent.EXTRA_STREAM, selectedImageUri);
                 }
             }
         }
@@ -193,9 +168,20 @@ public class EditProductActivity extends AppCompatActivity implements
         cursor.close();
     }
 
-    /**
-     * options menu
-     */
+    public void openImageSelector() {
+        Intent intent;
+        if (Build.VERSION.SDK_INT < 19) {
+            intent = new Intent(Intent.ACTION_GET_CONTENT);
+        } else {
+            intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+        }
+
+        intent.setType("image/*");
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), REQUEST_IMAGE_OPEN);
+    }
+
+    /*** options menu */
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -232,7 +218,6 @@ public class EditProductActivity extends AppCompatActivity implements
 
         name = nameEditText.getText().toString().trim();
         String qtyString = qtyEditText.getText().toString().trim();
-//        qty = Integer.parseInt(qtyString);
         String priceString = priceEditText.getText().toString().trim();
         suppEmail = supplierEmailEditText.getText().toString().trim();
 
@@ -293,7 +278,6 @@ public class EditProductActivity extends AppCompatActivity implements
     }
 
     private void showDeleteConfirmationDialog() {
-
         AlertDialog.Builder deleteConfADBuilder = new AlertDialog.Builder(this);
         deleteConfADBuilder.setMessage(getString(R.string.deleteConf_dialog_msg));
 
@@ -309,9 +293,7 @@ public class EditProductActivity extends AppCompatActivity implements
         DialogInterface.OnClickListener noButtonListener = new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-                if (dialogInterface != null) {
-                    dialogInterface.dismiss();
-                }
+                if (dialogInterface != null) { return; }
             }
         };
 
@@ -323,8 +305,17 @@ public class EditProductActivity extends AppCompatActivity implements
     }
 
     private void deleteProduct() {
-        db = dbHelper.getWritableDatabase();
-        getContentResolver().delete(currentProdUri, null, null);
+//        db = dbHelper.getWritableDatabase();
+//        Log.v(LOG_TAG, "currentProduUri= " + currentProdUri);
+//        int numRowsDeleted = getContentResolver().delete(currentProdUri, null, null);
+//        if (numRowsDeleted == 0) {
+//            Toast.makeText(EditProductActivity.this,
+//                    getString(R.string.edit_error_deleting_product), Toast.LENGTH_LONG).show();
+//
+//        } else {
+            Toast.makeText(EditProductActivity.this,
+                    getString(R.string.edit_product_deletion_successful), Toast.LENGTH_LONG).show();
+//        }
     }
 
     @Override
@@ -339,7 +330,6 @@ public class EditProductActivity extends AppCompatActivity implements
         }
 
         data.moveToFirst();
-        int idColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_ID);
         int nameColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_NAME);
         Log.v(LOG_TAG, "nameIndex= " + nameColIndex);
         int qtyColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_QTY);
@@ -351,13 +341,11 @@ public class EditProductActivity extends AppCompatActivity implements
         int suppEmailColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL);
         Log.v(LOG_TAG, "suppEmail index = " + suppEmailColIndex);
 
-        Integer id = data.getInt(idColIndex);
         String name = data.getString(nameColIndex);
         Integer qty = data.getInt(qtyColIndex);
         String quantityString = String.valueOf(qty);
         Double price = data.getDouble(priceColIndex);
         String priceString = String.valueOf(price);
-        String selectedImageUriString = data.getString(imageUriColIndex);
         String suppEmail = data.getString(suppEmailColIndex);
 
         nameEditText.setText(name);
@@ -386,8 +374,12 @@ public class EditProductActivity extends AppCompatActivity implements
         startActivityForResult(Intent.createChooser(intent, "Select Picture"), SELECT_PICTURE);
     }
 
-    public Bitmap getBitmapFromUri(Uri uri) {
+    private void dismissKeyboard(EditText view) {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
 
+    public Bitmap getBitmapFromUri(Uri uri) {
         if (uri == null || uri.toString().isEmpty())
             return null;
 
@@ -395,7 +387,12 @@ public class EditProductActivity extends AppCompatActivity implements
         int targetW = uploadedImage.getWidth();
         int targetH = uploadedImage.getHeight();
 
-        InputStream input = null;
+        InputStream input = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                return 0;
+            }
+        };
         try {
             input = this.getContentResolver().openInputStream(uri);
 
@@ -434,11 +431,6 @@ public class EditProductActivity extends AppCompatActivity implements
 
             }
         }
-    }
-
-    private void dismissKeyboard(EditText view) {
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
 }
 

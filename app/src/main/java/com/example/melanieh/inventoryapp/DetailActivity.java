@@ -41,6 +41,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -78,29 +79,24 @@ public class DetailActivity extends AppCompatActivity {
     EditText currentQtyView;
     Uri productUri;
     int currentQty;
-    Uri fullImageUri;
     ContentValues contentValues;
-    String supplierEmail;
     SQLiteDatabase db;
     ProductDBHelper dbHelper;
     String name;
     String suppEmail;
     Double price;
     String priceString;
-    Button updateQtyBtn;
     ImageButton upArrow;
     ImageButton downArrow;
     ImageView productImageView;
     Button updateFromShipment;
+    Button orderMore;
     int delta;
     TextView nameView;
     TextView priceView;
     String selectedImageUriString;
     Integer numRowsUpdated;
     Intent getProductData;
-    String decodedURIString;
-    InputStream inStream = null;
-    GoogleApiClient mGoogleApiClient;
 
     String productTable = ProductContract.ProductEntry.TABLE_NAME;
     String shipmentTable = ProductContract.ShipmentEntry.TABLE_NAME;
@@ -114,16 +110,8 @@ public class DetailActivity extends AppCompatActivity {
      * intent request codes, result codes and strings
      */
     private static final int REQUEST_IMAGE_OPEN = 1;
-    private static final int REQUEST_MGDOCS_PERM = 2;
 
-//    /**
-//     * runtime permissions
-//     */
-//    private static final String[] PERMISSIONS = {Manifest.permission.MANAGE_DOCUMENTS,
-//            Manifest.permission.READ_EXTERNAL_STORAGE,
-//            Manifest.permission.WRITE_EXTERNAL_STORAGE};
-
-    /***
+    /****
      * projection/columns array for cursor
      */
     String[] productsProjection = {
@@ -137,7 +125,6 @@ public class DetailActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.v(LOG_TAG, "onCreate called...");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.product_detail);
         dbHelper = new ProductDBHelper(this);
@@ -151,10 +138,11 @@ public class DetailActivity extends AppCompatActivity {
         /** quantity buttons */
         downArrow = (ImageButton) findViewById(R.id.qty_down_arrow);
         upArrow = (ImageButton) findViewById(R.id.qty_up_arrow);
-        updateFromShipment = (Button) findViewById(R.id.update_qty_shipment);
-        Button orderMore = (Button) findViewById(R.id.order_more);
 
-        /** inbound intent passing action and MIME type for product image from Catalog Activity **/
+        updateFromShipment = (Button) findViewById(R.id.update_qty_shipment);
+        orderMore = (Button) findViewById(R.id.order_more);
+
+        /** inbound intent data from Catalog Activity **/
         getProductData = getIntent();
         productUri = getProductData.getData();
         int qty = getProductData.getIntExtra("qty", 0);
@@ -162,10 +150,18 @@ public class DetailActivity extends AppCompatActivity {
         if (productUri == null) {
             return;
         } else {
+            openImageSelector();
             displayProductDetails();
         }
 
-        Log.v(LOG_TAG, "onCreate: productUri= " + productUri);
+        ViewTreeObserver viewTreeObserver = productImageView.getViewTreeObserver();
+        viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                productImageView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                productImageView.setImageBitmap(getBitmapFromUri(productUri));
+            }
+        });
 
         upArrow.setOnClickListener(new View.OnClickListener() {
 
@@ -205,31 +201,19 @@ public class DetailActivity extends AppCompatActivity {
             }
         });
 
-        /** contact supplier */
+        // contact supplier to order more product
         orderMore.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 sendSupplierEmail();
             }
         });
-
-//            mGoogleApiClient = new GoogleApiClient.Builder(this).enableAutoManage(this, this).addApi().build();
-        /** permissions check */
-        if (ContextCompat.checkSelfPermission(DetailActivity.this, Manifest.permission.MANAGE_DOCUMENTS)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(DetailActivity.this,
-                    new String[]{Manifest.permission.MANAGE_DOCUMENTS}, REQUEST_MGDOCS_PERM);
-        }
     }
 
     @Override
     public void finish() {
         cursor.close();
     }
-
-    /***
-     * activity options menu
-     */
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -265,22 +249,12 @@ public class DetailActivity extends AppCompatActivity {
             {
                 if (requestCode == REQUEST_IMAGE_OPEN) {
                     Uri selectedImageUri = data.getData();
-                    this.getContentResolver().takePersistableUriPermission(selectedImageUri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     productImageView.setImageBitmap(getBitmapFromUri(selectedImageUri));
-                    productImageView.setImageURI(selectedImageUri);
-//                    uploadedImage.setImageURI(selectedImageUri);
-                    selectedImageUriString = selectedImageUri.toString();
                 }
             }
         }
     }
-//                    data.putExtra(Intent.EXTRA_STREAM, selectedImageUri);
 
-
-    /**
-     * delete product confirmation dialog
-     */
     private void showDeleteConfirmationDialog() {
 
         AlertDialog.Builder deleteConfADBuilder = new AlertDialog.Builder(this);
@@ -301,7 +275,7 @@ public class DetailActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 if (dialogInterface != null) {
-//                    dialogInterface.dismiss();
+                    return;
                 }
             }
         };
@@ -316,8 +290,6 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     private void deleteProduct() {
-
-        Log.v(LOG_TAG, "deleteProduct() called...");
         db = dbHelper.getWritableDatabase();
         String whereClause = ProductContract.ProductEntry.COLUMN_ID + "=?";
         String[] whereArgs = {String.valueOf(ContentUris.parseId(productUri))};
@@ -341,9 +313,6 @@ public class DetailActivity extends AppCompatActivity {
         startActivity(editProduct);
     }
 
-    /***
-     * helper method for completing supplier e-mail
-     */
     private void showOrderMoreDialog() {
         Log.v(LOG_TAG, "orderMoreDialog:");
         String yesString = getString(R.string.supp_email_dialog_yes);
@@ -425,17 +394,12 @@ public class DetailActivity extends AppCompatActivity {
             showOrderMoreDialog();
         }
 
-//        productImageView.setImageURI(selectedImageUri);
-//                    this.getContentResolver().takePersistableUriPermission(selectedImageUri,
-//                    Intent.FLAG_GRANT_READ_URI_PERMISSION);
         if (selectedImageUriString == null) {
             return;
         }
         Bitmap bitmap = getBitmapFromUri(Uri.parse(selectedImageUriString));
         productImageView.setImageBitmap(bitmap);
     }
-
-    /*** quantity update helper methods */
 
     private void updateQty(int qty) {
         Log.v(LOG_TAG, "updateQty called...");
@@ -496,6 +460,20 @@ public class DetailActivity extends AppCompatActivity {
         String[] whereArgs = new String[]{String.valueOf(ContentUris.parseId(productUri))};
         numRowsUpdated = getContentResolver().update(productUri, contentValues, whereClause, whereArgs);
         Log.v(LOG_TAG, "numRowsUpdated=" + numRowsUpdated);
+    }
+
+    public void openImageSelector() {
+        Intent intent;
+
+        if (Build.VERSION.SDK_INT < 19) {
+            intent = new Intent(Intent.ACTION_GET_CONTENT);
+        } else {
+            intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+        }
+
+        intent.setType("image/*");
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), REQUEST_IMAGE_OPEN);
     }
 
     public Bitmap getBitmapFromUri(Uri uri) {
