@@ -68,6 +68,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+
 
 /**
  * Created by melanieh on 10/30/16.
@@ -76,7 +79,6 @@ import java.net.URLConnection;
 public class DetailActivity extends AppCompatActivity {
 
     Cursor cursor;
-    EditText currentQtyView;
     Uri productUri;
     int currentQty;
     ContentValues contentValues;
@@ -86,14 +88,7 @@ public class DetailActivity extends AppCompatActivity {
     String suppEmail;
     Double price;
     String priceString;
-    ImageButton upArrow;
-    ImageButton downArrow;
-    ImageView productImageView;
-    Button updateFromShipment;
-    Button orderMore;
     int delta;
-    TextView nameView;
-    TextView priceView;
     String selectedImageUriString;
     Integer numRowsUpdated;
     Intent getProductData;
@@ -123,30 +118,26 @@ public class DetailActivity extends AppCompatActivity {
             ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL
     };
 
+    @BindView(R.id.name) TextView nameView;
+    @BindView(R.id.price) TextView priceView;
+    @BindView(R.id.quantity_heading) TextView qtyHeadingView;
+    @BindView(R.id.qty_down_arrow) ImageButton downArrow;
+    @BindView(R.id.qty_edit_field) EditText currentQtyView;
+    @BindView(R.id.qty_up_arrow) ImageButton upArrow;
+    @BindView(R.id.update_qty_shipment) Button updateFromShipment;
+    @BindView(R.id.order_more) Button orderMoreBtn;
+    @BindView(R.id.product_img) ImageView productImageView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.product_detail);
+        ButterKnife.bind(this);
         dbHelper = new ProductDBHelper(this);
-
-        /** interactive UI views */
-        nameView = (TextView) findViewById(R.id.name);
-        priceView = (TextView) findViewById(R.id.price);
-        currentQtyView = (EditText) findViewById(R.id.qty_edit_field);
-        productImageView = (ImageView) findViewById(R.id.product_img);
-
-        /** quantity buttons */
-        downArrow = (ImageButton) findViewById(R.id.qty_down_arrow);
-        upArrow = (ImageButton) findViewById(R.id.qty_up_arrow);
-
-        updateFromShipment = (Button) findViewById(R.id.update_qty_shipment);
-        orderMore = (Button) findViewById(R.id.order_more);
 
         /** inbound intent data from Catalog Activity **/
         getProductData = getIntent();
         productUri = getProductData.getData();
-        int qty = getProductData.getIntExtra("qty", 0);
-        currentQtyView.setText(String.valueOf(qty));
         if (productUri == null) {
             return;
         } else {
@@ -202,7 +193,7 @@ public class DetailActivity extends AppCompatActivity {
         });
 
         // contact supplier to order more product
-        orderMore.setOnClickListener(new View.OnClickListener() {
+        orderMoreBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 sendSupplierEmail();

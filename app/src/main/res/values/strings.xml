@@ -21,6 +21,10 @@
     <string name="delete_dialog_yes">Yes</string>
     <string name="delete_dialog_no">No</string>
 
+    <!-- cursor recyclerview adapter -->
+    <string name="is_exception_cursor_invalid">onBindView Holder cannot be called on an invalid cursor</string>
+    <string name="is_exception_cannot_move_cursor">Cannot move cursor to position</string>
+
     <!-- listview -->
     <string name="name">Product Name</string>
     <string name="current_quantity">Qty:</string>

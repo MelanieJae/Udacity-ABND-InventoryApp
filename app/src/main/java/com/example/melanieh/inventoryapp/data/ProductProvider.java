@@ -84,7 +84,8 @@ public class ProductProvider extends ContentProvider {
         int match = sUriMatcher.match(uri);
         switch (match) {
             case PRODUCTS:
-                cursor = db.query(ProductContract.ProductEntry.TABLE_NAME, projection, selection, selectionArgs,
+                cursor = db.query(ProductContract.ProductEntry.TABLE_NAME, projection, selection,
+                        selectionArgs,
                         null, null, sortOrder);
                 break;
             case PRODUCT_ID:

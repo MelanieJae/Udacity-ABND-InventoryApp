@@ -26,6 +26,7 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
@@ -37,6 +38,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.melanieh.inventoryapp.data.ProductContract;
@@ -47,6 +49,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
+import butterknife.BindString;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+
 /**
  * Created by melanieh on 10/30/16.
  */
@@ -54,39 +60,49 @@ import java.io.UnsupportedEncodingException;
 public class EditProductActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Cursor>, View.OnClickListener {
 
-    /**
+    /***
      * log tag
      */
     private static final String LOG_TAG = EditProductActivity.class.getSimpleName();
-    /**
-     * intent chooser strings
+
+    /***
+     * intent action strings
      */
     private static final int SELECT_PICTURE = 1;
     private static final int REQUEST_IMAGE_OPEN = 2;
-    private static final String[] PERMISSIONS = {Manifest.permission.MANAGE_DOCUMENTS,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
     SQLiteDatabase db;
     ProductDBHelper dbHelper;
     Cursor cursor;
 
-    /*** projection for cursorloader calls*/
+    /***
+     * projection for cursorloader calls
+     */
     String[] projection = {ProductContract.ProductEntry.COLUMN_ID,
             ProductContract.ProductEntry.COLUMN_NAME,
             ProductContract.ProductEntry.COLUMN_QTY,
             ProductContract.ProductEntry.COLUMN_PRICE,
             ProductContract.ProductEntry.COLUMN_IMAGE_URI,
             ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL};
-    /**
+
+
+    /***
      * UI views for displaying product data
      */
+
+    @BindView(R.id.edit_name)
     EditText nameEditText;
+    @BindView(R.id.edit_quantity)
     EditText qtyEditText;
+    @BindView(R.id.edit_price)
     EditText priceEditText;
+    @BindView(R.id.edit_supplier_email)
     EditText supplierEmailEditText;
+    @BindView(R.id.image_prompt)
     Button imageUploadBtn;
+    @BindView(R.id.uploaded_image)
     ImageView uploadedImage;
+
     Uri selectedImageUri;
 
     String name;
@@ -104,14 +120,7 @@ public class EditProductActivity extends AppCompatActivity implements
         setContentView(R.layout.edit_product);
 
         // interactive UI views
-
-        nameEditText = (EditText) findViewById(R.id.edit_name);
-        qtyEditText = (EditText) findViewById(R.id.edit_quantity);
-        priceEditText = (EditText) findViewById(R.id.edit_price);
-        imageUploadBtn = (Button) findViewById(R.id.image_prompt);
-        supplierEmailEditText = (EditText) findViewById(R.id.edit_supplier_email);
-        uploadedImage = (ImageView) findViewById(R.id.uploaded_image);
-        imageUploadBtn.setOnClickListener(this);
+        ButterKnife.bind(this);
         dismissKeyboard(nameEditText);
         dismissKeyboard(qtyEditText);
         dismissKeyboard(priceEditText);
@@ -131,6 +140,8 @@ public class EditProductActivity extends AppCompatActivity implements
                 uploadedImage.setImageBitmap(getBitmapFromUri(currentProdUri));
             }
         });
+
+        imageUploadBtn.setOnClickListener(this);
 
         if (currentProdUri == null) {
             setTitle(getString(R.string.edit_appbar_add_product));
@@ -181,7 +192,9 @@ public class EditProductActivity extends AppCompatActivity implements
         startActivityForResult(Intent.createChooser(intent, "Select Picture"), REQUEST_IMAGE_OPEN);
     }
 
-    /*** options menu */
+    /***
+     * options menu
+     */
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -279,6 +292,7 @@ public class EditProductActivity extends AppCompatActivity implements
 
     private void showDeleteConfirmationDialog() {
         AlertDialog.Builder deleteConfADBuilder = new AlertDialog.Builder(this);
+        ButterKnife.bind(this);
         deleteConfADBuilder.setMessage(getString(R.string.deleteConf_dialog_msg));
 
         // positive button=yes, delete all products
@@ -293,7 +307,9 @@ public class EditProductActivity extends AppCompatActivity implements
         DialogInterface.OnClickListener noButtonListener = new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-                if (dialogInterface != null) { return; }
+                if (dialogInterface != null) {
+                    return;
+                }
             }
         };
 
@@ -305,17 +321,16 @@ public class EditProductActivity extends AppCompatActivity implements
     }
 
     private void deleteProduct() {
-//        db = dbHelper.getWritableDatabase();
-//        Log.v(LOG_TAG, "currentProduUri= " + currentProdUri);
-//        int numRowsDeleted = getContentResolver().delete(currentProdUri, null, null);
-//        if (numRowsDeleted == 0) {
-//            Toast.makeText(EditProductActivity.this,
-//                    getString(R.string.edit_error_deleting_product), Toast.LENGTH_LONG).show();
-//
-//        } else {
+        db = dbHelper.getWritableDatabase();
+        int numRowsDeleted = getContentResolver().delete(currentProdUri, null, null);
+        if (numRowsDeleted == 0) {
+            Toast.makeText(EditProductActivity.this,
+                    getString(R.string.edit_error_deleting_product), Toast.LENGTH_LONG).show();
+
+        } else {
             Toast.makeText(EditProductActivity.this,
                     getString(R.string.edit_product_deletion_successful), Toast.LENGTH_LONG).show();
-//        }
+        }
     }
 
     @Override
@@ -331,15 +346,10 @@ public class EditProductActivity extends AppCompatActivity implements
 
         data.moveToFirst();
         int nameColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_NAME);
-        Log.v(LOG_TAG, "nameIndex= " + nameColIndex);
         int qtyColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_QTY);
-        Log.v(LOG_TAG, "qtyColIndex= " + qtyColIndex);
         int priceColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_PRICE);
-        Log.v(LOG_TAG, "priceIndex = " + priceColIndex);
         int imageUriColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_IMAGE_URI);
-        Log.v(LOG_TAG, "imageUriIndex= " + imageUriColIndex);
         int suppEmailColIndex = data.getColumnIndexOrThrow(ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL);
-        Log.v(LOG_TAG, "suppEmail index = " + suppEmailColIndex);
 
         String name = data.getString(nameColIndex);
         Integer qty = data.getInt(qtyColIndex);
